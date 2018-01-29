@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">ASK APDU sample</string>
+    <string name="action_clear_all">Clear all</string>
+    <string name="in">&gt;&gt;</string>
+    <string name="out">&lt;&lt;</string>
+    <string name="status">Status:</string>
+    <string name="no_data">No data</string>
+    <string name="poll_for_cards">Poll for cards</string>
+    <string name="polling_started">Polling started</string>
+    <string name="polling_stopped">Polling stopped</string>
+</resources>
