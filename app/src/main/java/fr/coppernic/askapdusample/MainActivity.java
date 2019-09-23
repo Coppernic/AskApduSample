@@ -1,7 +1,6 @@
 package fr.coppernic.askapdusample;
 
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
@@ -24,16 +23,15 @@ import fr.coppernic.sdk.ask.ReaderListener;
 import fr.coppernic.sdk.ask.RfidTag;
 import fr.coppernic.sdk.ask.SearchParameters;
 import fr.coppernic.sdk.ask.sCARD_SearchExt;
-import fr.coppernic.sdk.power.PowerManager;
-import fr.coppernic.sdk.power.api.PowerListener;
-import fr.coppernic.sdk.power.api.peripheral.Peripheral;
 import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
 import fr.coppernic.sdk.utils.core.CpcBytes;
 import fr.coppernic.sdk.utils.core.CpcDefinitions;
 import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.io.InstanceListener;
+import io.reactivex.SingleObserver;
+import io.reactivex.disposables.Disposable;
 
-public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
+public class MainActivity extends AppCompatActivity implements InstanceListener<Reader> {
 
     private Reader reader;
     private CommunicationExchangesAdapter adapter;
@@ -51,8 +49,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        PowerManager.get().registerListener(this);
 
         ButterKnife.bind(this);
 
@@ -88,8 +84,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     @Override
     protected void onDestroy() {
-        PowerManager.get().unregisterAll();
-        PowerManager.get().releaseResources();
+
         super.onDestroy();
     }
 
@@ -97,27 +92,36 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     protected void onStart() {
         super.onStart();
         // Powers on RFID reader
-        ConePeripheral.RFID_ASK_UCM108_GPIO.on(this);
+        ConePeripheral.RFID_ASK_UCM108_GPIO
+                .getDescriptor()
+                .power(this, true)
+                .subscribe(new SingleObserver<CpcResult.RESULT>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onSuccess(CpcResult.RESULT result) {
+                        Reader.getInstance(MainActivity.this, MainActivity.this);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+                });
     }
 
     @Override
     protected void onStop() {
         reader.cscClose();
         // Powers off RFID reader
-        ConePeripheral.RFID_ASK_UCM108_GPIO.off(this);
+        ConePeripheral.RFID_ASK_UCM108_GPIO
+                .getDescriptor()
+                .power(this, false);
         swPolling.setEnabled(false);
         super.onStop();
-    }
-
-    @Override
-    public void onPowerUp(CpcResult.RESULT result, Peripheral peripheral) {
-        SystemClock.sleep(500);
-        Reader.getInstance(this, this);
-    }
-
-    @Override
-    public void onPowerDown(CpcResult.RESULT result, Peripheral peripheral) {
-
     }
 
     @Override
@@ -194,18 +198,19 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      */
     private void startPolling(final View view) {
         // Sets the card detection
+        reader.cscEnterHuntPhaseParameters((byte)0x01, (byte)0x01, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, null, (byte)0x00, (byte)0x00);
         sCARD_SearchExt search = new sCARD_SearchExt();
-        search.OTH = 1;
+        search.OTH = 0;
         search.CONT = 0;
-        search.INNO = 1;
+        search.INNO = 0;
         search.ISOA = 1;
         search.ISOB = 1;
-        search.MIFARE = 1;
-        search.MONO = 1;
-        search.MV4k = 1;
-        search.MV5k = 1;
-        search.TICK = 1;
-        int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
+        search.MIFARE = 0;
+        search.MONO = 0;
+        search.MV4k = 0;
+        search.MV5k = 0;
+        search.TICK = 0;
+        int mask = Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE;
         SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
         // Starts card detection
         reader.startDiscovery(parameters, new ReaderListener() {

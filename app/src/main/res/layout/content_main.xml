@@ -37,6 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="APDU"
+            android:text="00A40004023F0000"
             tools:layout_editor_absoluteX="8dp"
             tools:layout_editor_absoluteY="54dp" />
     </android.support.design.widget.TextInputLayout>
